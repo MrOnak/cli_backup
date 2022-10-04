@@ -9,9 +9,7 @@ zmodload zsh/zutil || return
 #
 # It can optionally mount/unmount a drive before/after the operation.
 # You can give this script a path to a shellscript to be source'd to contain
-#   encryption parameters and similar variables
-# 
-# TODO: verify rclone sync by MD5SUM, not just file date & -size
+# parameters for rclone 
 
 RCLONE_BIN=$(which rclone)
 CLOUDIFY_ENV_FILE=""
@@ -22,7 +20,6 @@ CLOUDIFY_DEST_PATH=""
 ERR=0
 
 # functions
-
 doBefore() {
   echo "======================================"
   echo "executing 'before' actions..."
@@ -35,10 +32,6 @@ doBefore() {
     echo "- mounting "$CLOUDIFY_SOURCE_MOUNTPOINT
     mount $CLOUDIFY_SOURCE_MOUNTPOINT
     ERR=$?
-    if [[ $ERR -eq 0 && ! -d $CLOUDIFY_SOURCE_BASEDIR ]]; then
-      echo "Error: source directory '$CLOUDIFY_SOURCE_BASEDIR' doesn't exist"
-      ERR=1
-    fi
   fi
 }
 
@@ -56,20 +49,21 @@ doSync() {
   if [ $ERR -eq 0 ]; then
     echo "======================================"
     echo "starting sync..."
-    $RCLONE_BIN sync --progress $CLOUDIFY_SOURCE_BASEDIR $CLOUDIFY_DEST_PATH
+    $RCLONE_BIN sync --progress --checksum $CLOUDIFY_SOURCE_BASEDIR $CLOUDIFY_DEST_PATH
     ERR=$?
   fi
 }
 
 displayUsage() {
   SELF=`basename $1`
-  echo "Usage: $SELF [options]"
+  echo "Usage: $SELF --source path/to/source --destination url://to/destination [options]"
   echo
   echo "Available options:"
+  echo "  -s  --source        valid path or url for rclone to sync from"
+  echo "  -d  --destination   valid rclone remote url to sync to"
   echo "  -e  --env-file      path to file with environment variables to be source'd"
-  echo "  -d  --destination   valid rclone remote path to sync to"
-  echo "  -s  --source        valid path for rclone to sync from"
   echo "  -m  --mountpoint    optional file path to mount/unmount before/after the sync"
+  echo "  -y  --yes           don't confirm before syncing"
   exit 1
 }
 
@@ -79,12 +73,14 @@ zparseopts -D -F -K --                  \
   {d,-destination}:=dest_path           \
   {s,-source}:=source_path              \
   {m,-mountpoint}:=source_mountpoint    \
+  {y,-yes}=noconfirm                    \
   || return
 
 CLOUDIFY_ENV_FILE=${env_file[-1]}
 CLOUDIFY_SOURCE_MOUNTPOINT=${source_mountpoint[-1]}
 CLOUDIFY_SOURCE_BASEDIR=${source_path[-1]}
 CLOUDIFY_DEST_PATH=${dest_path[-1]}
+CLOUDIFY_NOCONFIRM=$#noconfirm
 
 if [[ -z "$CLOUDIFY_SOURCE_BASEDIR" || -z "$CLOUDIFY_DEST_PATH" ]]; then
   displayUsage $0
@@ -97,7 +93,10 @@ echo " destination       : "$CLOUDIFY_DEST_PATH
 echo " env parameters    : "$CLOUDIFY_ENV_FILE
 echo "--------------------------------------"
 
-if read -q "START?start sync? [y/N]: "; then
+if [ $CLOUDIFY_NOCONFIRM -ne 1 ]; then
+  read -q "CLOUDIFY_NOCONFIRM?start backup? [y/N]: "
+fi
+if [[ $CLOUDIFY_NOCONFIRM -eq 1 || $CLOUDIFY_NOCONFIRM = "y" ]]; then
   echo
   doBefore
   doSync

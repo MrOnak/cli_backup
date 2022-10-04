@@ -11,8 +11,8 @@ zmodload zsh/zutil || return
 # such to run backups non-interactively
 # The wrapper can also mount/unmount before/after the backup itself.
 #
-# A the moment not all parameters are accessible through commandline parameters,
-# do check the header of the script
+# At the moment not all parameters are accessible through commandline parameters,
+# do check the variables immediately below this comment header
 
 DUP_BIN=$(which duplicity)
 DUP_SOURCE_BASE=/
@@ -100,13 +100,14 @@ doBackup() {
 
 display_usage() {
   SELF=`basename $1`
-  echo "Usage: $SELF [options]"
+  echo "Usage: $SELF --include-file path/to/includes.txt --destination url://to/destination [options]"
   echo 
   echo "Available options:"
-  echo "  -e  --env-file      path to file with environment variables to be source'd"
-  echo "  -d  --destination   valid duplicity remote path to use as backup target"
   echo "  -i  --include-file  duplicity include/exclude file"
+  echo "  -d  --destination   valid duplicity remote path to use as backup target"
+  echo "  -e  --env-file      path to file with environment variables to be source'd"
   echo "  -m  --mountpoint    file path to mount/unmount before/after the backup"
+  echo "  -y  --yes           don't confirm before starting backup"
   exit 1
 }
 
@@ -117,14 +118,18 @@ zparseopts -D -F -K --                      \
   {d,-destination}:=target_basedir          \
   {i,-include-file}:=include_file           \
   {m,-mountpoint}:=target_mountpoint        \
+  {y,-yes}=noconfirm                       \
   || return
 
 DUP_BACKUPTARGET_BASEDIR=${target_basedir[-1]}
 DUP_BACKUPTARGET_MOUNTPOINT=${target_mountpoint[-1]}
 DUP_ENV_FILE=${env_file[-1]}
 DUP_BACKUPGROUP_INCLUDES=${include_file[-1]}
+DUP_NOCONFIRM=$#noconfirm
 BACKUPGROUP=${backup_group[-1]}
 BACKUPTARGET=${backup_target[-1]}
+
+echo "confirm: "$DUP_CONFIRM
 
 # main code
 if [[ -z "$DUP_BACKUPTARGET_BASEDIR" 
@@ -141,7 +146,11 @@ echo "mount path  : "$DUP_BACKUPTARGET_MOUNTPOINT
 echo "destination : "$DUP_BACKUPTARGET_BASEDIR
 echo "include file: "$DUP_BACKUPGROUP_INCLUDES
 echo "------------------------------"
-if read -q "START?start backup? [y/N]: "; then
+
+if [ $DUP_NOCONFIRM -ne 1 ]; then
+  read -q "DUP_NOCONFIRM?start backup? [y/N]: "
+fi
+if [[ $DUP_NOCONFIRM -eq 1 || $DUP_NOCONFIRM = "y" ]]; then
   echo
   doBefore
   doBackup

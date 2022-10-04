@@ -1,0 +1,5 @@
+- /home/USERNAME/.cache
+- /home/USERNAME/.local/Trash
+- /home/USERNAME/Downloads
+/home/USERNAME/**
+- **

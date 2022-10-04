@@ -1,0 +1,12 @@
+- /root/.cache
+- /var/run
+- /var/cache
+- /var/tmp
+- /var/log
+/etc/**
+/opt/**
+/root/**
+/srv/**
+/var/**
+- **
+
