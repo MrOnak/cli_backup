@@ -13,7 +13,7 @@ These scripts allow me to gain some flexibility and keep my cron scripts short s
 The `backup.zsh` script is responsible to create a backup of "local" content.
 
 - it can mount/unmount a drive just before/after the backup operation.
-- it will backup the root directory `/`, so you *must* provide it with an `--include-file` to include/exclude what you need to actually backup. See the provided `sample_home.includes.txt` and `sample_system.includes.txt` for more. This file is passed to `duplicity --include-filelist` so you do want to read up on that, too.
+- by default it will backup the root directory `/`, so you *must* provide it with an `--include-file` to include/exclude what you need to actually backup. See the provided `sample_home.includes.txt` and `sample_system.includes.txt` for more. This file is passed to `duplicity --include-filelist` so you do want to read up on that, too.
 - it will prompt for a GPG key id & its passphrase to use for backup encryption.
 - alternatively, you can provide an `--env-file` which is a shellscript that contains your GPG key id and passphrase. This file will be `source`'d, your passphrases will never enter the shell history. See the `sample_env.sh` for what this can look like.
 - after backing up the content, `backup.zsh` will verify the backup and prune old ones. A new full backup is  performed monthly, and two full backups (and their increments) are stored before being pruned. You can change this in the variables in the header section of `backup.zsh`
@@ -46,6 +46,12 @@ If we assume we only want to backup our `~/Documents` folder, `include.txt` woul
 The first line `/home/USERNAME/Documents/**` explicitly allows the `Documents` folder and everything in it. The second line `- **` *excludes* everything, including the root folder (note the leading `-` in that line). In effect, only the `Documents` folder is backed up.
 
 **Warning:** Make sure you always exclude your backup destination implicitly or explicitly.
+
+#### minimal backup of single folder
+
+If you're trying to backup the content of a single folder, maybe with some exceptions within that, you can use an alternative approach by supplying a specific source directory and an exclude file instead of an include file:
+
+`backup.zsh --exclude-file path/to/exclude.txt --sourcedir /home/username --destination file:///data/backup`
 
 #### backup to a temporary mount
 

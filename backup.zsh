@@ -15,10 +15,11 @@ zmodload zsh/zutil || return
 # do check the variables immediately below this comment header
 
 DUP_BIN=$(which duplicity)
-DUP_SOURCE_BASE=/
+DUP_SOURCE_BASEDIR=/
 DUP_BACKUP_FORCE_FULL_AFTER=1M
 DUP_BACKUP_PRUNE_EXEMPT_COUNT=2
 DUP_BACKUPGROUP_INCLUDES=""
+DUP_BACKUPGROUP_EXCLUDES=""
 DUP_BACKUPTARGET_MOUNTPOINT=""
 DUP_BACKUPTARGET_BASEDIR=""
 
@@ -73,8 +74,9 @@ doBackup() {
     echo "starting backup.."
     $DUP_BIN --full-if-older-than $DUP_BACKUP_FORCE_FULL_AFTER --progress \
       --encrypt-key $DUP_KEY \
-      --include-filelist $DUP_BACKUPGROUP_INCLUDES \
-      $DUP_SOURCE_BASE $DUP_BACKUPTARGET_BASEDIR
+      ${DUP_BACKUPGROUP_INCLUDES:+--include-filelist="$DUP_BACKUPGROUP_INCLUDES"} \
+      ${DUP_BACKUPGROUP_EXCLUDES:+--exclude-filelist="$DUP_BACKUPGROUP_EXCLUDES"} \
+      $DUP_SOURCE_BASEDIR $DUP_BACKUPTARGET_BASEDIR
     ERR=$?
   fi
   
@@ -83,8 +85,9 @@ doBackup() {
     echo "starting verification..."
     $DUP_BIN verify \
       --encrypt-key $DUP_KEY \
-      --include-filelist $DUP_BACKUPGROUP_INCLUDES \
-      $DUP_BACKUPTARGET_BASEDIR $DUP_SOURCE_BASE
+      ${DUP_BACKUPGROUP_INCLUDES:+--include-filelist="$DUP_BACKUPGROUP_INCLUDES"} \
+      ${DUP_BACKUPGROUP_EXCLUDES:+--exclude-filelist="$DUP_BACKUPGROUP_EXCLUDES"} \
+      $DUP_BACKUPTARGET_BASEDIR $DUP_SOURCE_BASEDIR
     ERR=$?
   fi
   
@@ -103,7 +106,9 @@ display_usage() {
   echo "Usage: $SELF --include-file path/to/includes.txt --destination url://to/destination [options]"
   echo 
   echo "Available options:"
-  echo "  -i  --include-file  duplicity include/exclude file"
+  echo "  -i  --include-file  duplicity include file"
+  echo "  -x  --exclude-file  duplicity exclude file"
+  echo "  -s  --sourcedir     base directory to use as backup source. must exist"
   echo "  -d  --destination   valid duplicity remote path to use as backup target"
   echo "  -e  --env-file      path to file with environment variables to be source'd"
   echo "  -m  --mountpoint    file path to mount/unmount before/after the backup"
@@ -118,13 +123,19 @@ zparseopts -D -F -K --                      \
   {d,-destination}:=target_basedir          \
   {i,-include-file}:=include_file           \
   {m,-mountpoint}:=target_mountpoint        \
-  {y,-yes}=noconfirm                       \
+  {s,-sourcedir}:=source_basedir            \
+  {x,-exclude-file}:=exclude_file           \
+  {y,-yes}=noconfirm                        \
   || return
 
+if [[ ! -z "${source_basedir[-1]}" ]]; then
+  DUP_SOURCE_BASEDIR=${source_basedir[-1]}
+fi
 DUP_BACKUPTARGET_BASEDIR=${target_basedir[-1]}
 DUP_BACKUPTARGET_MOUNTPOINT=${target_mountpoint[-1]}
 DUP_ENV_FILE=${env_file[-1]}
 DUP_BACKUPGROUP_INCLUDES=${include_file[-1]}
+DUP_BACKUPGROUP_EXCLUDES=${exclude_file[-1]}
 DUP_NOCONFIRM=$#noconfirm
 BACKUPGROUP=${backup_group[-1]}
 BACKUPTARGET=${backup_target[-1]}
@@ -132,8 +143,7 @@ BACKUPTARGET=${backup_target[-1]}
 echo "confirm: "$DUP_CONFIRM
 
 # main code
-if [[ -z "$DUP_BACKUPTARGET_BASEDIR" 
-   || -z "$DUP_BACKUPGROUP_INCLUDES" ]]; then
+if [[ -z "$DUP_BACKUPTARGET_BASEDIR" ]]; then 
   display_usage $0
   exit 1
 fi
@@ -143,8 +153,10 @@ queryGPGInfo
 echo "=============================="
 echo "gpg key id  : "$DUP_KEY
 echo "mount path  : "$DUP_BACKUPTARGET_MOUNTPOINT
+echo "source      : "$DUP_SOURCE_BASEDIR
 echo "destination : "$DUP_BACKUPTARGET_BASEDIR
 echo "include file: "$DUP_BACKUPGROUP_INCLUDES
+echo "exclude file: "$DUP_BACKUPGROUP_EXCLUDES
 echo "------------------------------"
 
 if [ $DUP_NOCONFIRM -ne 1 ]; then
