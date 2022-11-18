@@ -72,8 +72,9 @@ doBackup() {
   if [ $ERR -eq 0 ]; then
     echo "=============================="
     echo "starting backup.."
-    $DUP_BIN --full-if-older-than $DUP_BACKUP_FORCE_FULL_AFTER --progress \
+    $DUP_BIN --full-if-older-than $DUP_BACKUP_FORCE_FULL_AFTER \
       --encrypt-key $DUP_KEY \
+      ${DUP_VERBOSE:+--progress} \
       ${DUP_BACKUPGROUP_INCLUDES:+--include-filelist="$DUP_BACKUPGROUP_INCLUDES"} \
       ${DUP_BACKUPGROUP_EXCLUDES:+--exclude-filelist="$DUP_BACKUPGROUP_EXCLUDES"} \
       $DUP_SOURCE_BASEDIR $DUP_BACKUPTARGET_BASEDIR
@@ -112,6 +113,7 @@ display_usage() {
   echo "  -d  --destination   valid duplicity remote path to use as backup target"
   echo "  -e  --env-file      path to file with environment variables to be source'd"
   echo "  -m  --mountpoint    file path to mount/unmount before/after the backup"
+  echo "  -v  --verbose       print regular updates on backup progress"
   echo "  -y  --yes           don't confirm before starting backup"
   exit 1
 }
@@ -125,6 +127,7 @@ zparseopts -D -F -K --                      \
   {m,-mountpoint}:=target_mountpoint        \
   {s,-sourcedir}:=source_basedir            \
   {x,-exclude-file}:=exclude_file           \
+  {v,-verbose}=verbose                      \
   {y,-yes}=noconfirm                        \
   || return
 
@@ -137,6 +140,7 @@ DUP_ENV_FILE=${env_file[-1]}
 DUP_BACKUPGROUP_INCLUDES=${include_file[-1]}
 DUP_BACKUPGROUP_EXCLUDES=${exclude_file[-1]}
 DUP_NOCONFIRM=$#noconfirm
+DUP_VERBOSE=$#verbose
 BACKUPGROUP=${backup_group[-1]}
 BACKUPTARGET=${backup_target[-1]}
 
@@ -147,6 +151,10 @@ if [[ -z "$DUP_BACKUPTARGET_BASEDIR" ]]; then
   display_usage $0
   exit 1
 fi
+
+if [ $DUP_VERBOSE -ne 1 ]; then 
+  unset DUP_VERBOSE
+fi 
 
 queryGPGInfo
 
