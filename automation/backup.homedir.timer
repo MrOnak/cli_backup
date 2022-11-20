@@ -1,0 +1,32 @@
+# systemd.timer script to execute a backup of the current users'
+# home directory in regular intervals.
+#
+# Do adapt the [Timer] stanza to your needs
+#
+# To activate this script, do run:
+#   systemctl --user start backup.homedir.timer
+#
+# ...and confirm both .service and .timer run correctly:
+#   systemctl --user list-timers 
+#   systemctl --user status backup.homedir.timer
+#   systemctl --user status backup.homedir.service
+
+[Unit]
+Description=Executes a backup of the home directory for %u @ %H
+Documentation=https://github.com/MrOnak/cli_backup
+
+[Timer]
+# The OnCalendar setting makes it so that the timer runs once per day 
+# at 6:00 am but only on weekdays. 
+OnCalendar=Mon..Fri 6:00
+# waits for 5 minutes after the timer has been activated before starting
+# the service itself - this is to make sure the system is fully up in the 
+# event that the timer is triggering a late run during the boot process.
+OnActiveSec=5m
+# The Persistent setting ensures that the timer runs immediately if 
+# the last run was missed, i.e. due to the system being offline at 6 am
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+

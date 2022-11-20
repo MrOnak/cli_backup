@@ -1,0 +1,32 @@
+# systemd.service to run a backup of the current users'
+# home directory, with possible exceptions.
+#
+# This file and the associated .timer file are expected to
+# reside in ~/.config/systemd/user/
+#
+# Use a (configured) cronwrapper script for the ExecStart directive
+#
+# Do not install the service itself but do activate the 
+# associated backup.homedir.timer file:
+#
+# systemctl --user start backup.homedir.timer
+#
+# See the .timer file for more information
+#
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# MAKE SURE YOU CHANGE THE PATH FOR THE ExecStart CALL
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[Unit]
+Description=home directory backup service for %u @ %H
+Documentation=https://github.com/MrOnak/cli_backup
+
+[Service]
+Type=simple
+# expects a crontab wrapper script for the backup to be executed here,
+# you cannot use complicated shell commands directly.
+ExecStart=/path/to/cronwrapper.zsh
+
+[Install]
+WantedBy=multi-user.target
+

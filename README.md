@@ -127,6 +127,24 @@ Assume a small LAN with several computers that need backup. The LAN contains a N
     * `cloudify.zsh -e envfile.sh -s backups -d s3:bucket/backup` and
     * `cloudify.zsh -e envfile.sh -s backups -d storagebox:backups`
 
+## Automation
+
+If you plan on running regular automated backups, then do have a look at the scripts in the `automation` folder. 
+
+`cronwrapper.zsh` is a script that, as the name suggests, can be used to wrap a call to `backup.zsh` for use within a cronjob. In addition to wrapping the call itself, it'll redirect STDOUT and STDERR to a temporary logfile, mail that log to you afterwards and append it to a permanent logfile.
+
+The script does need a bunch of customization in order to work, so I suggest you create a copy of the original and work from there. Create a fresh copy for every type of automated backup you plan to run.
+
+### systemd timers
+
+While the `cronwrapper.zsh` script is fine for cron/anacron calls, I'm providing .service and .timer files in case you want to automate the execution via `systemd.timers`.
+
+The supplied files `automation/backup.homedir.*` provide the rough scaffolding to run a backup of the current users' home directory by means of calling a (configured) `cronwrapper.zsh` script every weekday.
+
+Like `cronwrapper.zsh` itself, these scripts do need to be adapted to your needs.
+
+Recommended reading to get this to work is `man systemd.timer`, `man systemd.service` and `man systemd.unit`
+
 ## On restoring the backup
 
 I wrote this set of scripts to *create* and *distribute* my backups while providing some convenience functionality. The scripts are not intended as, and probably will never become, a complete backup/restore solution. 
