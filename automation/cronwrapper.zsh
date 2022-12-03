@@ -18,6 +18,8 @@ LOG=$LOGDIR/clibackup.log
 MAIL_SUBJECT="backup of $HOST completed"
 MAIL_RECEIVER="$USER"
 
+BIN_MAIL=$(which mail)
+
 # create log header
 echo > $TMPLOG
 echo "====================" >> $TMPLOG
@@ -43,7 +45,7 @@ echo "====================" >> $TMPLOG
 echo >> $TMPLOG
 
 # send logfile via mail
-cat $TMPLOG | mail -s $MAIL_SUBJECT $MAIL_RECEIVER
+$BIN_MAIL -s "$MAIL_SUBJECT" $MAIL_RECEIVER < $TMPLOG
 
 # append logfile to overall log and delete temporary one
 cat $TMPLOG >> $LOG
